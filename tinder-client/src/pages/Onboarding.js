@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useCookies } from "react-cookie";
+import { useNavigate } from "react-router-dom";
 import { Nav } from "../components/Nav";
 
 export const Onboarding = () => {
+  const [cookies, setCookie, removeCookie] = useCookies(["user"]);
   const [formData, setFormData] = useState({
-    user_id: "",
+    user_id: cookies.UserId,
     first_name: "",
     last_name: "",
     dob_day: "",
@@ -12,28 +16,42 @@ export const Onboarding = () => {
     show_gender: false,
     gender_identity: "Man",
     gender_interest: "Man",
-    email: "",
     url: "",
     about: "",
     matches: [],
   });
 
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        let encoded = reader.result.toString().replace(/^data:(.*,)?/, "");
-        if (encoded.length % 4 > 0) {
-          encoded += "=".repeat(4 - (encoded.length % 4));
-        }
-        resolve(encoded);
-      };
-      reader.onerror = (error) => reject(error);
-    });
+  const previewImage = () => {
+    const img = document.getElementById("url").files[0];
+    let reader = new FileReader();
+    let image = document.getElementById("preview_pic");
+    // console.log(formData.url);
+    image.title = img.name;
 
-  const handleSubmit = (e) => {
+    reader.onload = (event) => {
+      image.src = event.target.result;
+    };
+    reader.readAsDataURL(img);
+  };
+
+  let navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     console.log("submitted");
+    e.preventDefault();
+    try {
+      const fd = new FormData();
+      const img = document.getElementById("url").files[0];
+      fd.append("formData", JSON.stringify(formData));
+      fd.append("imageData", img);
+
+      const response = await axios.put(`http://localhost:8000/user`, fd);
+      console.log(response.data);
+      const success = response.status === 200;
+      if (success) navigate("/dashboard");
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const handleChange = async (e) => {
@@ -42,48 +60,22 @@ export const Onboarding = () => {
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
 
     // console.log("Name: " + name + ", value: " + value);
-    console.log(value);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
-  const handleImage = async (e) => {
-    let value;
-    const img = document.getElementById("url").files[0];
-    try {
-      // toBase64(img).then((data) => {
-      //   value = data;
-      // });
-      value = await toBase64(img);
-      // const img_container =
-      //   document.getElementsByClassName("photo-container")[0];
-      let reader = new FileReader();
-      let image = document.getElementById("preview_pic");
-      image.title = img.name;
-      // image.id = "preview_pic";
-      // image.setAttribute("width", "100px");
-      // image.alt = "Profile Picture Preview";
-      // image.setAttribute("height", "100px");
-      // image.height = 30;
-      // image.width = 30;
-      reader.onload = (event) => {
-        image.src = event.target.result;
-      };
-      reader.readAsDataURL(img);
-      // image.src = base64toBlob(value, "image/jpg");
-      // img_container.appendChild(image);
-      setFormData((prev) => ({
-        ...prev,
-        url: value,
-      }));
-    } catch (err) {
-      console.error(err);
-      return;
+    if (name === "url") {
+      // setFormData((prev) => ({
+      //   ...prev,
+      //   url: true,
+      // }));
+      previewImage();
     }
+
+    // console.log(value);
   };
 
-  console.log(formData);
+  // console.log(formData);
 
   return (
     <>
@@ -231,7 +223,7 @@ export const Onboarding = () => {
               type="file"
               name="url"
               id="url"
-              onChange={handleImage}
+              onChange={handleChange}
               required={true}
             />
             <div className="photo-container">

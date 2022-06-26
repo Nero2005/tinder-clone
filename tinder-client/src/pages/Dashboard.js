@@ -1,8 +1,22 @@
 import TinderCard from "react-tinder-card";
 import { useState } from "react";
 import { ChatContainer } from "../components/ChatContainer";
+import axios from "axios";
 
 export const Dashboard = () => {
+  const [user, setUser] = useState(null);
+
+  const getUser = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8000/user?userId=`);
+      setUser(response.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  getUser();
+
   const characters = [
     {
       name: "Richard Hendricks",
